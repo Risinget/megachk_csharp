@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using MegaChk;
 namespace MegaChk
 {
     public partial class Form1 : Form
@@ -225,7 +225,7 @@ namespace MegaChk
                         return;
                     }
 
-                    MegaResult result = await ProcessMegaAccountWithTimeoutAsync(email, password, Log, 5000);
+                    MegaResult result = await ProcessMegaAccountWithTimeoutAsync(email, password, Log, 60000);
 
                     if (result == null)
                     {
@@ -293,11 +293,14 @@ namespace MegaChk
         }
 
         private async Task<MegaResult> ProcessMegaAccountWithTimeoutAsync(
-            string email,
-            string password,
-            Action<string> log,
-            int timeoutMs)
+    string email,
+    string password,
+    Action<string> log,
+    int timeoutMs)
         {
+            var cts = new CancellationTokenSource(timeoutMs);
+            var token = cts.Token;
+
             var workTask = Task.Run(() =>
             {
                 MegaApiClient client = null;
@@ -306,12 +309,20 @@ namespace MegaChk
                 try
                 {
                     log($"[Mega] Inicio para {email}");
+                    token.ThrowIfCancellationRequested();
 
                     client = new MegaApiClient();
 
                     log($"[Mega] Antes de Login({email})");
-                    client.Login(email, password);
+                    var loginTask = Task.Run(() => client.Login(email, password));
+                    if (!loginTask.Wait(timeoutMs))
+                    {
+                        log($"[Mega] TIMEOUT en Login para {email}");
+                        return null;
+                    }
+
                     log($"[Mega] Después de Login({email})");
+                    token.ThrowIfCancellationRequested();
 
                     if (!client.IsLoggedIn)
                     {
@@ -320,12 +331,16 @@ namespace MegaChk
                     }
 
                     loggedIn = true;
-                    log($"[Mega] Login correcto para {email}");
 
                     log($"[Mega] Antes de GetAccountInformation({email})");
-                    var info = client.GetAccountInformation();
-                    log($"[Mega] Después de GetAccountInformation({email})");
+                    var infoTask = Task.Run(() => client.GetAccountInformation());
+                    if (!infoTask.Wait(timeoutMs))
+                    {
+                        log($"[Mega] TIMEOUT en GetAccountInformation para {email}");
+                        return null;
+                    }
 
+                    var info = infoTask.Result;
                     long usedQuotaMB = info.UsedQuota / (1024 * 1024);
                     long totalQuotaMB = info.TotalQuota / (1024 * 1024);
 
@@ -339,26 +354,24 @@ namespace MegaChk
                         TotalQuotaMB = totalQuotaMB
                     };
                 }
+                catch (OperationCanceledException)
+                {
+                    log($"[Mega] CANCELADO para {email}");
+                    return null;
+                }
                 catch (Exception ex)
                 {
-                    log($"[Mega] EXCEPCIÓN para {email}: {ex}");
+                    log($"[Mega] EXCEPCIÓN para {email}: {ex.Message}");
                     return null;
                 }
                 finally
                 {
                     if (client != null && loggedIn)
                     {
-                        try
-                        {
-                            log($"[Mega] Antes de Logout({email})");
-                            client.Logout();
-                            log($"[Mega] Logout OK para {email}");
-                        }
-                        catch (Exception ex)
-                        {
-                            log($"[Mega] Error en Logout para {email}: {ex}");
-                        }
+                        try { client.Logout(); }
+                        catch { }
                     }
+                    cts.Dispose();
                 }
             });
 
@@ -366,7 +379,7 @@ namespace MegaChk
 
             if (completed != workTask)
             {
-                log($"[Mega] TIMEOUT para {email} después de {timeoutMs} ms");
+                log($"[Mega] TIMEOUT GLOBAL para {email}");
                 return null;
             }
 
@@ -384,14 +397,7 @@ namespace MegaChk
                 File.AppendAllText(_validsFilePath, line + Environment.NewLine, Encoding.UTF8);
             }
         }
-
     }
-}
 
-public class MegaResult
-{
-    public string Email { get; set; }
-    public string Password { get; set; }
-    public long UsedQuotaMB { get; set; }
-    public long TotalQuotaMB { get; set; }
+
 }
