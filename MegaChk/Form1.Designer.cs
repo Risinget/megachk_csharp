@@ -34,19 +34,21 @@ namespace MegaChk
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.labelLista = new System.Windows.Forms.Label();
-            this.labelSalida = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
             this.textBoxLista = new System.Windows.Forms.TextBox();
-            this.textBoxSalida = new System.Windows.Forms.TextBox();
             this.buttonImprimirLista = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.labelTotal = new System.Windows.Forms.Label();
+            this.labelValidos = new System.Windows.Forms.Label();
+            this.labelErrores = new System.Windows.Forms.Label();
+            this.buttonExportarTxt = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -54,21 +56,11 @@ namespace MegaChk
             // 
             this.labelLista.AutoSize = true;
             this.labelLista.ForeColor = System.Drawing.Color.Red;
-            this.labelLista.Location = new System.Drawing.Point(44, 57);
+            this.labelLista.Location = new System.Drawing.Point(20, 30);
             this.labelLista.Name = "labelLista";
             this.labelLista.Size = new System.Drawing.Size(37, 13);
             this.labelLista.TabIndex = 0;
             this.labelLista.Text = "LISTA";
-            // 
-            // labelSalida
-            // 
-            this.labelSalida.AutoSize = true;
-            this.labelSalida.ForeColor = System.Drawing.Color.Red;
-            this.labelSalida.Location = new System.Drawing.Point(393, 57);
-            this.labelSalida.Name = "labelSalida";
-            this.labelSalida.Size = new System.Drawing.Size(45, 13);
-            this.labelSalida.TabIndex = 0;
-            this.labelSalida.Text = "SALIDA";
             // 
             // button1
             // 
@@ -76,31 +68,27 @@ namespace MegaChk
             this.button1.FlatAppearance.BorderColor = System.Drawing.Color.Red;
             this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button1.ForeColor = System.Drawing.Color.Red;
-            this.button1.Location = new System.Drawing.Point(396, 20);
+            this.button1.Location = new System.Drawing.Point(23, 220);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(152, 23);
             this.button1.TabIndex = 1;
             this.button1.Text = "INICIAR VERIFICACIÓN";
             this.button1.UseVisualStyleBackColor = false;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.button1.Click += new System.EventHandler(this.buttonStart);
             // 
             // textBoxLista
             // 
-            this.textBoxLista.BackColor = System.Drawing.SystemColors.WindowFrame;
-            this.textBoxLista.Location = new System.Drawing.Point(47, 73);
+            this.textBoxLista.BackColor = System.Drawing.Color.Black;
+            this.textBoxLista.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.textBoxLista.ForeColor = System.Drawing.Color.Red;
+            this.textBoxLista.Location = new System.Drawing.Point(23, 56);
             this.textBoxLista.Multiline = true;
             this.textBoxLista.Name = "textBoxLista";
+            this.textBoxLista.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.textBoxLista.Size = new System.Drawing.Size(319, 120);
             this.textBoxLista.TabIndex = 2;
-            // 
-            // textBoxSalida
-            // 
-            this.textBoxSalida.BackColor = System.Drawing.SystemColors.WindowFrame;
-            this.textBoxSalida.Location = new System.Drawing.Point(396, 73);
-            this.textBoxSalida.Multiline = true;
-            this.textBoxSalida.Name = "textBoxSalida";
-            this.textBoxSalida.Size = new System.Drawing.Size(319, 120);
-            this.textBoxSalida.TabIndex = 2;
+            this.textBoxLista.Text = "acc1:pw1\r\nacc2:pw2";
+            this.textBoxLista.TextChanged += new System.EventHandler(this.textBoxLista_TextChanged);
             // 
             // buttonImprimirLista
             // 
@@ -108,26 +96,13 @@ namespace MegaChk
             this.buttonImprimirLista.FlatAppearance.BorderColor = System.Drawing.Color.Red;
             this.buttonImprimirLista.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonImprimirLista.ForeColor = System.Drawing.Color.Red;
-            this.buttonImprimirLista.Location = new System.Drawing.Point(214, 22);
+            this.buttonImprimirLista.Location = new System.Drawing.Point(369, 220);
             this.buttonImprimirLista.Name = "buttonImprimirLista";
             this.buttonImprimirLista.Size = new System.Drawing.Size(152, 23);
             this.buttonImprimirLista.TabIndex = 1;
             this.buttonImprimirLista.Text = "IMPRIMIR LISTA";
             this.buttonImprimirLista.UseVisualStyleBackColor = false;
             this.buttonImprimirLista.Click += new System.EventHandler(this.buttonImprimirLista_Click);
-            // 
-            // button2
-            // 
-            this.button2.FlatAppearance.BorderColor = System.Drawing.Color.Red;
-            this.button2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button2.ForeColor = System.Drawing.Color.Red;
-            this.button2.Location = new System.Drawing.Point(563, 20);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(152, 23);
-            this.button2.TabIndex = 1;
-            this.button2.Text = "IMPRIMIR SALIDA";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
             // dataGridView1
             // 
@@ -213,22 +188,68 @@ namespace MegaChk
             this.Column5.HeaderText = "QUOTA";
             this.Column5.Name = "Column5";
             // 
+            // labelTotal
+            // 
+            this.labelTotal.AutoSize = true;
+            this.labelTotal.ForeColor = System.Drawing.Color.Red;
+            this.labelTotal.Location = new System.Drawing.Point(782, 176);
+            this.labelTotal.Name = "labelTotal";
+            this.labelTotal.Size = new System.Drawing.Size(54, 13);
+            this.labelTotal.TabIndex = 0;
+            this.labelTotal.Text = "TOTAL: 0";
+            // 
+            // labelValidos
+            // 
+            this.labelValidos.AutoSize = true;
+            this.labelValidos.ForeColor = System.Drawing.Color.Red;
+            this.labelValidos.Location = new System.Drawing.Point(771, 199);
+            this.labelValidos.Name = "labelValidos";
+            this.labelValidos.Size = new System.Drawing.Size(65, 13);
+            this.labelValidos.TabIndex = 0;
+            this.labelValidos.Text = "VALIDOS: 0";
+            // 
+            // labelErrores
+            // 
+            this.labelErrores.AutoSize = true;
+            this.labelErrores.ForeColor = System.Drawing.Color.Red;
+            this.labelErrores.Location = new System.Drawing.Point(764, 225);
+            this.labelErrores.Name = "labelErrores";
+            this.labelErrores.Size = new System.Drawing.Size(72, 13);
+            this.labelErrores.TabIndex = 0;
+            this.labelErrores.Text = "ERRORES: 0";
+            // 
+            // buttonExportarTxt
+            // 
+            this.buttonExportarTxt.BackColor = System.Drawing.SystemColors.ControlText;
+            this.buttonExportarTxt.FlatAppearance.BorderColor = System.Drawing.Color.Red;
+            this.buttonExportarTxt.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonExportarTxt.ForeColor = System.Drawing.Color.Red;
+            this.buttonExportarTxt.Location = new System.Drawing.Point(199, 220);
+            this.buttonExportarTxt.Name = "buttonExportarTxt";
+            this.buttonExportarTxt.Size = new System.Drawing.Size(152, 23);
+            this.buttonExportarTxt.TabIndex = 1;
+            this.buttonExportarTxt.Text = "EXPORTAR .TXT";
+            this.buttonExportarTxt.UseVisualStyleBackColor = false;
+            this.buttonExportarTxt.Click += new System.EventHandler(this.buttonExportTxt_click);
+            // 
             // Form1
             // 
             this.AccessibleRole = System.Windows.Forms.AccessibleRole.IpAddress;
             this.BackColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.ClientSize = new System.Drawing.Size(965, 572);
             this.Controls.Add(this.dataGridView1);
-            this.Controls.Add(this.textBoxSalida);
             this.Controls.Add(this.textBoxLista);
-            this.Controls.Add(this.button2);
+            this.Controls.Add(this.buttonExportarTxt);
             this.Controls.Add(this.buttonImprimirLista);
             this.Controls.Add(this.button1);
-            this.Controls.Add(this.labelSalida);
+            this.Controls.Add(this.labelErrores);
+            this.Controls.Add(this.labelValidos);
+            this.Controls.Add(this.labelTotal);
             this.Controls.Add(this.labelLista);
             this.ForeColor = System.Drawing.Color.Transparent;
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
+            this.Text = "MEGACHK - Made by @Kenuzx";
             this.Load += new System.EventHandler(this.Form1_Load_1);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
@@ -239,18 +260,19 @@ namespace MegaChk
         #endregion
 
         private System.Windows.Forms.Label labelLista;
-        private System.Windows.Forms.Label labelSalida;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.TextBox textBoxLista;
-        private System.Windows.Forms.TextBox textBoxSalida;
         private System.Windows.Forms.Button buttonImprimirLista;
-        private System.Windows.Forms.Button button2;
         private System.Windows.Forms.DataGridView dataGridView1;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column4;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column1;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column2;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column3;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column5;
+        private Label labelTotal;
+        private Label labelValidos;
+        private Label labelErrores;
+        private Button buttonExportarTxt;
     }
 }
 
