@@ -259,6 +259,8 @@ namespace MegaChk
                         }
                     }));
 
+                    AppendValidToFile(result);
+
                     Interlocked.Increment(ref validos);
                     UpdateCounters(total, validos, errores);
 
@@ -369,6 +371,18 @@ namespace MegaChk
             }
 
             return await workTask;
+        }
+
+        private readonly object _validsFileLock = new object();
+        private readonly string _validsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "valids.txt");
+
+        private void AppendValidToFile(MegaResult result)
+        {
+            var line = $"{result.Email}:{result.Password}:{result.UsedQuotaMB}:{result.TotalQuotaMB}";
+            lock (_validsFileLock)
+            {
+                File.AppendAllText(_validsFilePath, line + Environment.NewLine, Encoding.UTF8);
+            }
         }
 
     }
